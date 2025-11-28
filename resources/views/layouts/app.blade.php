@@ -43,6 +43,8 @@
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header d-flex align-items-center">
+
+
       <a href="{{ url('/') }}" class="b-brand text-primary">
         <!-- ========   Change your logo from here   ============ -->
         <img src="https://safeworktraining.on-forge.com/assets/safeworktraining-logo.png" class="img-fluid w-100" alt="logo"> <br>
@@ -102,6 +104,10 @@
     </li>
 
   </ul>
+
+      <small class="text-muted">
+    Version {{ config('app.version') }}
+</small>
 </div>
 <!-- [Mobile Media Block end] -->
 <div class="ms-auto">

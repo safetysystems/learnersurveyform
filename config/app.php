@@ -124,7 +124,8 @@ return [
     ],
 
 
-    'version' => env('APP_VERSION', '(beta)'),
+    'version' => env('APP_VERSION', '0.0.0'),
+'stage' => env('APP_STAGE', 'dev'),
 
 
 ];

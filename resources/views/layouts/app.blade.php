@@ -105,9 +105,10 @@
 
   </ul>
 
-      <small class="text-muted">
-    Version {{ config('app.version') }}
+  <small class="text-muted">
+    Version {{ config('app.version') }} ({{ config('app.stage') }})
 </small>
+
 </div>
 <!-- [Mobile Media Block end] -->
 <div class="ms-auto">

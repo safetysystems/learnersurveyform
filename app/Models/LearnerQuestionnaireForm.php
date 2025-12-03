@@ -8,6 +8,7 @@ class LearnerQuestionnaireForm extends Model
 {
     protected $fillable = [
         'feedback_id',
+        'is_employer',
     ];
 
     public function feedback()

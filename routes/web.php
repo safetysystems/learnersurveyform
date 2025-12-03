@@ -61,3 +61,6 @@ Route::middleware('auth')->group(function () {
 Route::get('/survey/{feedback}', [FeedbackController::class, 'showSurvey'])->name('survey.show');
 Route::post('/survey/{feedback}', [FeedbackController::class, 'submitSurvey'])->name('survey.submit');
 Route::get('/survey-response/{form}/download', [FeedbackController::class, 'downloadResponse'])->name('survey.response.download');
+
+Route::get('/employer-survey/{feedback}', [FeedbackController::class, 'showEmployerSurvey'])->name('employer.survey.show');
+Route::post('/employer-survey/{feedback}', [FeedbackController::class, 'submitEmployerSurvey'])->name('employer.survey.submit');

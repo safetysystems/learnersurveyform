@@ -36,4 +36,9 @@ class Feedback extends Model
     {
         return $this->hasMany(LearnerQuestionnaireForm::class);
     }
+
+    public function getRouteKeyName()
+    {
+        return 'response_code';
+    }
 }

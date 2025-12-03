@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Learner Questionnaire Response</title>
+    <title>{{ $form->is_employer ? 'Employer Questionnaire Response' : 'Learner Questionnaire Response' }}</title>
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -36,7 +36,9 @@
     </style>
 </head>
 <body>
-    <h1>Learner Questionnaire Response</h1>
+    <h1>
+        {{ $form->is_employer ? 'Employer Questionnaire Response' : 'Learner Questionnaire Response' }}
+    </h1>
     <p><strong>Course:</strong> {{ $form->feedback->course?->name }}</p>
     <p><strong>Date:</strong> {{ $form->feedback->course_date?->format('Y-m-d') }}</p>
     <p><strong>Trainer:</strong> {{ $form->feedback->trainer_name }}</p>
@@ -45,7 +47,9 @@
     @endif
     <p><strong>Submitted at:</strong> {{ $form->created_at?->format('Y-m-d H:i:s') }}</p>
 
-    <h2>About your training</h2>
+    <h2>
+        {{ $form->is_employer ? "About your employees' training" : 'About your training' }}
+    </h2>
     <table>
         <thead>
         <tr>
@@ -78,51 +82,52 @@
     <p><strong>Best aspects of the training:</strong><br>{{ $form->demographics->best_aspects ?? '—' }}</p>
     <p><strong>Aspects needing improvement:</strong><br>{{ $form->demographics->needs_improvement ?? '—' }}</p>
 
-    <h2>Training details and about you</h2>
-    @php $d = $form->demographics; @endphp
-    <p><strong>Qualification title:</strong> {{ $d->qualification_full_title ?? '—' }}</p>
-    <p><strong>Qualification level code:</strong> {{ $d->qualification_level ?? '—' }}</p>
-    <p><strong>Broad field code:</strong> {{ $d->training_broad_field ?? '—' }}</p>
-    <p><strong>Start month/year:</strong> {{ $d->training_start_month ?? '—' }}/{{ $d->training_start_year ?? '—' }}</p>
-    <p><strong>Apprenticeship/traineeship:</strong>
-        @if (!is_null($d->is_apprenticeship_or_traineeship))
-            {{ $d->is_apprenticeship_or_traineeship ? 'Yes' : 'No' }}
-        @else
-            —
-        @endif
-    </p>
-    <p><strong>Recognition of prior learning:</strong>
-        @if (!is_null($d->has_recognition_of_prior_learning))
-            {{ $d->has_recognition_of_prior_learning ? 'Yes' : 'No' }}
-        @else
-            —
-        @endif
-    </p>
-    <p><strong>Language other than English at home:</strong>
-        @if (!is_null($d->speaks_language_other_than_english_at_home))
-            {{ $d->speaks_language_other_than_english_at_home ? 'Yes' : 'No' }}
-        @else
-            —
-        @endif
-    </p>
-    <p><strong>Permanent resident or citizen:</strong>
-        @if (!is_null($d->is_permanent_resident_or_citizen))
-            {{ $d->is_permanent_resident_or_citizen ? 'Yes' : 'No' }}
-        @else
-            —
-        @endif
-    </p>
-    <p><strong>Disability/impairment:</strong>
-        @if (!is_null($d->has_disability_or_impairment))
-            {{ $d->has_disability_or_impairment ? 'Yes' : 'No' }}
-        @else
-            —
-        @endif
-    </p>
-    <p><strong>Sex code:</strong> {{ $d->sex_code ?? '—' }}</p>
-    <p><strong>Age band code:</strong> {{ $d->age_band_code ?? '—' }}</p>
-    <p><strong>ATSI origin code:</strong> {{ $d->atsi_origin_code ?? '—' }}</p>
-    <p><strong>Postcode:</strong> {{ $d->postcode ?? '—' }}</p>
+    @unless ($form->is_employer)
+        <h2>Training details and about you</h2>
+        @php $d = $form->demographics; @endphp
+        <p><strong>Qualification title:</strong> {{ $d->qualification_full_title ?? '—' }}</p>
+        <p><strong>Qualification level code:</strong> {{ $d->qualification_level ?? '—' }}</p>
+        <p><strong>Broad field code:</strong> {{ $d->training_broad_field ?? '—' }}</p>
+        <p><strong>Start month/year:</strong> {{ $d->training_start_month ?? '—' }}/{{ $d->training_start_year ?? '—' }}</p>
+        <p><strong>Apprenticeship/traineeship:</strong>
+            @if (!is_null($d->is_apprenticeship_or_traineeship))
+                {{ $d->is_apprenticeship_or_traineeship ? 'Yes' : 'No' }}
+            @else
+                —
+            @endif
+        </p>
+        <p><strong>Recognition of prior learning:</strong>
+            @if (!is_null($d->has_recognition_of_prior_learning))
+                {{ $d->has_recognition_of_prior_learning ? 'Yes' : 'No' }}
+            @else
+                —
+            @endif
+        </p>
+        <p><strong>Language other than English at home:</strong>
+            @if (!is_null($d->speaks_language_other_than_english_at_home))
+                {{ $d->speaks_language_other_than_english_at_home ? 'Yes' : 'No' }}
+            @else
+                —
+            @endif
+        </p>
+        <p><strong>Permanent resident or citizen:</strong>
+            @if (!is_null($d->is_permanent_resident_or_citizen))
+                {{ $d->is_permanent_resident_or_citizen ? 'Yes' : 'No' }}
+            @else
+                —
+            @endif
+        </p>
+        <p><strong>Disability/impairment:</strong>
+            @if (!is_null($d->has_disability_or_impairment))
+                {{ $d->has_disability_or_impairment ? 'Yes' : 'No' }}
+            @else
+                —
+            @endif
+        </p>
+        <p><strong>Sex code:</strong> {{ $d->sex_code ?? '—' }}</p>
+        <p><strong>Age band code:</strong> {{ $d->age_band_code ?? '—' }}</p>
+        <p><strong>ATSI origin code:</strong> {{ $d->atsi_origin_code ?? '—' }}</p>
+        <p><strong>Postcode:</strong> {{ $d->postcode ?? '—' }}</p>
+    @endunless
 </body>
 </html>
-

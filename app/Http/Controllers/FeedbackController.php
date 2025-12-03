@@ -14,6 +14,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class FeedbackController extends Controller
 {
@@ -103,7 +104,7 @@ class FeedbackController extends Controller
             'venue_id' => $venue?->id,
             'course_date' => $data['course_date'],
             'trainer_name' => $data['trainer_name'],
-            'response_code' => '111',
+            'response_code' => (string) Str::uuid(),
             'has_learner_survey' => true,
             'is_scanned' => false,
         ]);
@@ -122,9 +123,35 @@ class FeedbackController extends Controller
             return view('survey.already_submitted', compact('feedback'));
         }
 
-        $questions = AboutYourTrainingQuestion::orderBy('display_order')->get();
+        $questions = AboutYourTrainingQuestion::where('question_code', 'LIKE', 'LQ%')
+            ->orderBy('display_order')
+            ->get();
 
         return view('survey.show', compact('feedback', 'questions'));
+    }
+
+    /**
+     * Show the employer questionnaire for a given feedback entry.
+     */
+    public function showEmployerSurvey(Feedback $feedback)
+    {
+        $questions = AboutYourTrainingQuestion::where('question_code', 'LIKE', 'EQ%')
+            ->orderBy('display_order')
+            ->get();
+
+        return view('survey.employer_show', compact('feedback', 'questions'));
+    }
+
+    /**
+     * Store employer questionnaire responses.
+     */
+    public function submitEmployerSurvey(Request $request, Feedback $feedback)
+    {
+        $data = $request->validate($this->surveyValidationRules());
+        $form = $this->saveSurveyResponses($feedback, $data, true);
+        $questions = AboutYourTrainingQuestion::orderBy('display_order')->get();
+
+        return view('survey.thanks', compact('feedback', 'form', 'questions'));
     }
 
     /**
@@ -135,7 +162,7 @@ class FeedbackController extends Controller
         abort_unless($feedback->has_learner_survey, 404);
 
         $data = $request->validate($this->surveyValidationRules());
-        $form = $this->saveSurveyResponses($feedback, $data);
+        $form = $this->saveSurveyResponses($feedback, $data, false);
         $questions = AboutYourTrainingQuestion::orderBy('display_order')->get();
 
         session()->put("survey_completed.{$feedback->id}", true);
@@ -150,7 +177,9 @@ class FeedbackController extends Controller
     {
         abort_unless($feedback->has_learner_survey, 404);
 
-        $questions = AboutYourTrainingQuestion::orderBy('display_order')->get();
+        $questions = AboutYourTrainingQuestion::where('question_code', 'LIKE', 'LQ%')
+            ->orderBy('display_order')
+            ->get();
 
         return view('survey.admin.show', compact('feedback', 'questions'));
     }
@@ -164,7 +193,7 @@ class FeedbackController extends Controller
         abort_unless($feedback->has_learner_survey, 404);
 
         $data = $request->validate($this->surveyValidationRules());
-        $this->saveSurveyResponses($feedback, $data);
+        $this->saveSurveyResponses($feedback, $data, false);
 
         return redirect()
             ->route('feedback.responses', $feedback)
@@ -174,15 +203,27 @@ class FeedbackController extends Controller
     /**
      * View submitted responses for a feedback entry.
      */
-    public function responses(Feedback $feedback)
+    public function responses(Request $request, Feedback $feedback)
     {
-        $forms = $feedback->learnerQuestionnaireForms()
+        $query = $feedback->learnerQuestionnaireForms()
             ->withCount('answers')
             ->with('demographics')
-            ->latest()
-            ->paginate(50);
+            ->latest();
 
-        return view('feedback.responses', compact('feedback', 'forms'));
+        $filter = $request->query('type');
+        if ($filter === 'learner') {
+            $query->where('is_employer', false);
+        } elseif ($filter === 'employer') {
+            $query->where('is_employer', true);
+        }
+
+        $forms = $query->paginate(50)->withQueryString();
+
+        return view('feedback.responses', [
+            'feedback' => $feedback,
+            'forms' => $forms,
+            'filter' => $filter,
+        ]);
     }
 
     /**
@@ -192,7 +233,14 @@ class FeedbackController extends Controller
     {
         abort_unless($form->feedback_id === $feedback->id, 404);
 
-        $questions = AboutYourTrainingQuestion::orderBy('display_order')->get();
+        $questionsQuery = AboutYourTrainingQuestion::query();
+        if ($form->is_employer) {
+            $questionsQuery->where('question_code', 'LIKE', 'EQ%');
+        } else {
+            $questionsQuery->where('question_code', 'LIKE', 'LQ%');
+        }
+
+        $questions = $questionsQuery->orderBy('display_order')->get();
         $form->load(['answers', 'answers.question', 'demographics']);
 
         return view('feedback.response_show', compact('feedback', 'form', 'questions'));
@@ -313,16 +361,37 @@ class FeedbackController extends Controller
     /**
      * Export responses for a single feedback as CSV.
      */
-    public function exportResponses(Feedback $feedback)
+    public function exportResponses(Request $request, Feedback $feedback)
     {
-        $questions = AboutYourTrainingQuestion::orderBy('display_order')->get();
+        $type = $request->query('type'); // null|learner|employer
 
-        $forms = $feedback->learnerQuestionnaireForms()
+        $questionsQuery = AboutYourTrainingQuestion::query();
+        if ($type === 'learner') {
+            $questionsQuery->where('question_code', 'LIKE', 'LQ%');
+        } elseif ($type === 'employer') {
+            $questionsQuery->where('question_code', 'LIKE', 'EQ%');
+        }
+        $questions = $questionsQuery->orderBy('display_order')->get();
+
+        $formsQuery = $feedback->learnerQuestionnaireForms()
             ->with(['answers', 'demographics', 'feedback.course', 'feedback.venue'])
-            ->orderBy('created_at')
-            ->get();
+            ->orderBy('created_at');
 
-        $filename = 'feedback_' . $feedback->id . '_responses.csv';
+        if ($type === 'learner') {
+            $formsQuery->where('is_employer', false);
+        } elseif ($type === 'employer') {
+            $formsQuery->where('is_employer', true);
+        }
+
+        $forms = $formsQuery->get();
+
+        $filename = 'feedback_' . $feedback->id;
+        if ($type === 'learner') {
+            $filename .= '_learner';
+        } elseif ($type === 'employer') {
+            $filename .= '_employer';
+        }
+        $filename .= '_responses.csv';
 
         return response()->streamDownload(function () use ($feedback, $forms, $questions) {
             $handle = fopen('php://output', 'w');
@@ -527,11 +596,12 @@ class FeedbackController extends Controller
     /**
      * Persist survey responses and demographics.
      */
-    private function saveSurveyResponses(Feedback $feedback, array $data): LearnerQuestionnaireForm
+    private function saveSurveyResponses(Feedback $feedback, array $data, bool $isEmployer = false): LearnerQuestionnaireForm
     {
-        return DB::transaction(function () use ($feedback, $data) {
+        return DB::transaction(function () use ($feedback, $data, $isEmployer) {
             $form = LearnerQuestionnaireForm::create([
                 'feedback_id' => $feedback->id,
+                'is_employer' => $isEmployer,
             ]);
 
             foreach ($data['answers'] as $questionId => $answerValue) {
